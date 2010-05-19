@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Mail Notify
+Icon=applications-email-panel
+Type=Application
+Categories=GNOME;GTK;Network;
+Exec=mailnotify
+StartupNotify=false
+Terminal=false
