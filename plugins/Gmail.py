@@ -23,8 +23,8 @@ import time
 import feedparser
 import calendar
 # own classes
-from mail import Mail
-from unreadmails import UnreadMails
+from includes.mail import Mail
+from includes.unreadmails import UnreadMails
 
 import logging
 log = logging.getLogger('Log.Gmail')

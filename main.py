@@ -24,7 +24,7 @@ import logging
 import logging.handlers
 import sys
 # own imports
-from indicator import Indicator
+from includes.indicator import Indicator
 
 PLUGINDIR = './plugins'
 LOGFILE = './log'
