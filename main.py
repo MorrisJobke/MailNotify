@@ -25,10 +25,12 @@ import logging.handlers
 import sys
 # own imports
 from includes.indicator import Indicator
+from includes.settings import Settings
 
-PLUGINDIR = './plugins'
 LOGFILE = './log'
 LOGFORMAT = '%(levelname)s\t%(name)s\t%(relativeCreated)d\t%(message)s'
+PLUGINDIR = './plugins'
+CONFIGFILE = '~/.config/mailnotify/settings.conf'
 
 import sys
 
@@ -49,14 +51,17 @@ if __name__ == '__main__':
 	log.setLevel(level)
 
 	log.info('loading config ...')
-	config = {}
-	config['refreshTimeout'] = 5
-	config['plugins'] = {
-		'Gmail-1': {'plugin': 'Gmail', 'username': 'huhu', 'password': 'dsafsd', 'labels': 'inbox,friends', 'prefix': 'Gmail - ', 'enablePrefix': True},
-		'Gmail2-1': {'plugin': 'Gmail2', 'username': 'huhu2', 'password': 'moin', 'labels': 'inbox', 'prefix': 'Gmail2 - ', 'enablePrefix': True},
+	s = Settings(CONFIGFILE)
+	config = s.config
+	print config
+#	config = {}
+#	config['refreshTimeout'] = 5
+#	config['plugins'] = {
+#		'Gmail-1': {'plugin': 'Gmail', 'username': 'huhu', 'password': 'dsafsd', 'labels': 'inbox,friends', 'prefix': 'Gmail - ', 'enablePrefix': True},
+#		'Gmail2-1': {'plugin': 'Gmail2', 'username': 'huhu2', 'password': 'moin', 'labels': 'inbox', 'prefix': 'Gmail2 - ', 'enablePrefix': True},
 #		'Webde-1': {'plugin': 'Webde', 'username': 'huhu2', 'password': 'moin', 'labels': 'inbox', 'prefix': 'Webde - ', 'enablePrefix': True}
-	}
-	# needed plugins
+#	}
+	
 	p = []
 	for i in config['plugins']:
 		q = config['plugins'][i]

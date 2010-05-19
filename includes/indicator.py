@@ -28,7 +28,7 @@ log = logging.getLogger('Log.Indicator')
 
 class Indicator():
 	def __init__(self, config, loadedPlugins, notifier):
-		self.desktopFile 	= os.path.join(os.getcwd(),'mailnotify.desktop')
+		self.desktopFile 	= os.path.join(os.getcwd(),'data','mailnotify.desktop')
 		self.server	= indicate.indicate_server_ref_default()
 		self.server.set_type('message.mail')
 		self.server.set_desktop_file(self.desktopFile)
@@ -39,8 +39,17 @@ class Indicator():
 		self.config = config
 		self.loadedPlugins = loadedPlugins
 		
-		self.indicators = {}
+		self.config['refreshtimeout'] = int(self.config['refreshtimeout'])
 		
+		self.indicators = {}
+		if self.config['plugins'] == {}:
+			self.indicators['setup'] = SettingsIndicatorItem(
+				'You have to setup a account'
+			)
+		if not len(self.config['plugins']) == len(notifier):		
+			self.indicators['error'] = SettingsIndicatorItem(
+				'One or more accounts are not supported'
+			)
 		self.refresh()
 		
 	def click(self, server, something):
@@ -56,14 +65,20 @@ class Indicator():
 					tmp = self.config['plugins'][n]
 					tmp['password'] = '*****'
 					log.debug(tmp)
-					if 'error' in self.indicators:
-						self.indicators['error'].hide()
 					title = self.config['plugins'][n]['plugin']
 					title += ' - Unauthorized Account: '
 					title += self.config['plugins'][n]['username']
-					self.indicators['error'] = SettingsIndicatorItem(
-						title
-					)
+					
+					
+					if 'error' in self.indicators and \
+						not self.indicators['error'].subject == title:
+						self.indicators['error'].hide()
+						del self.indicators['error']
+					
+					if 'error' not in self.indicators:
+						self.indicators['error'] = SettingsIndicatorItem(
+							title
+						)
 					
 			except Exception, e:
 				log.error('An error occured ...')
@@ -74,7 +89,7 @@ class Indicator():
 					for u in self.notifier[n].unread.mails:
 						u.notify()
 		
-		gobject.timeout_add_seconds(self.config['refreshTimeout'], self.refresh)
+		gobject.timeout_add_seconds(self.config['refreshtimeout'], self.refresh)
 		
 class SettingsIndicatorItem(indicate.Indicator):		
 	def __init__(self, subject):
