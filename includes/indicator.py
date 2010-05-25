@@ -21,11 +21,12 @@ import indicate
 import os
 import gobject
 import urllib2
+import logging
 
 # own imports
 from includes.settings import Settings
 
-import logging
+# log
 log = logging.getLogger('Log.Indicator')
 
 class Indicator():
@@ -37,12 +38,11 @@ class Indicator():
 		self.server.connect('server-display', self.click)
 		self.server.show()
 		
-		self.initConfig 	= ( confFile, pluginDir )		
-		self.notifier 		= {}	
-		
-		self.loadConfig()
+		self.loadConfig(confFile)
 		self.config['refreshtimeout'] = int(self.config['refreshtimeout'])
-		self.loadAndStartPlugins()
+		
+		self.notifier = {}	
+		self.loadAndStartPlugins(pluginDir)
 		
 		self.indicators = {}
 		if self.config['plugins'] == {}:
@@ -55,12 +55,11 @@ class Indicator():
 			)
 		self.refresh()
 		
-	def loadConfig(self):
+	def loadConfig(self, confFile):
 		log.info('loading config ...')
-		s = Settings(self.initConfig[0])
-		self.config = s.config
+		self.config = Settings(confFile).config
 		
-	def loadAndStartPlugins(self):
+	def loadAndStartPlugins(self, pluginDir):
 		p = []
 		for i in self.config['plugins']:
 			q = self.config['plugins'][i]
@@ -77,7 +76,7 @@ class Indicator():
 		plugins = []
 		notFoundPlugins = []
 		for n in p:
-			if os.path.isfile(os.path.join(self.initConfig[1],n+'.py')):
+			if os.path.isfile(os.path.join(pluginDir,n+'.py')):
 				log.info('plugin %s ... \tfound'%n)
 				plugins.append('.'.join(['plugins',n]))
 				gs.append(g)
@@ -98,7 +97,6 @@ class Indicator():
 			p = self.config['plugins'][i]
 			if not p['plugin'] in notFoundPlugins:
 				self.notifier[i] = loadedPlugins[p['plugin']].Notifier(p)
-		
 		
 	def click(self, server, something):
 		log.info('TODO - open settings')
