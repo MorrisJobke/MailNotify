@@ -27,13 +27,15 @@ import logging
 log = logging.getLogger('Log.Indicator')
 
 class Indicator():
-	def __init__(self, config, loadedPlugins, notifier):
+	def __init__(self, config, loadedPlugins, notifier, settings):
 		self.desktopFile 	= os.path.join(os.getcwd(),'data','mailnotify.desktop')
 		self.server	= indicate.indicate_server_ref_default()
 		self.server.set_type('message.mail')
 		self.server.set_desktop_file(self.desktopFile)
 		self.server.connect('server-display', self.click)
 		self.server.show()
+		
+		self.settings = settings
 
 		self.notifier = notifier
 		self.config = config
@@ -61,7 +63,7 @@ class Indicator():
 				self.notifier[n].check()
 			except urllib2.HTTPError, e:
 				if e.code == 401:
-					log.error('ERROR: Unauthorized - plugin: %s'%n)
+					log.info('Unauthorized - plugin: %s'%n)
 					tmp = self.config['plugins'][n]
 					tmp['password'] = '*****'
 					log.debug(tmp)
@@ -79,6 +81,31 @@ class Indicator():
 						self.indicators['error'] = SettingsIndicatorItem(
 							title
 						)
+				else:
+					log.error('An HTTPError occured ...')
+					log.error(e)
+					log.error('code: ' . e.code)
+			except urllib2.URLError, e:
+				if str(e.reason) == '[Errno -2] Name or service not known':
+					log.info('Lost internet connection')
+					
+					title = 'May you haven\'t internet connection'
+					
+					if 'error' in self.indicators and \
+						not self.indicators['error'].subject == title:
+						self.indicators['error'].hide()
+						del self.indicators['error']
+					
+					if 'error' not in self.indicators:
+						self.indicators['error'] = SettingsIndicatorItem(
+							title
+						)
+						self.indicators['error'].unstress()
+				else:				
+					log.error('An URLError occured ...')
+					log.error(e)
+					log.error('reason: ' . e.reason)
+					
 					
 			except Exception, e:
 				log.error('An error occured ...')
@@ -100,9 +127,15 @@ class SettingsIndicatorItem(indicate.Indicator):
 		self.subject = subject
 		self.set_property('name', subject)
 		self.connect('user-display', self.click)
+		self.stress()
+		self.show()	
+		
+	def stress(self):
 		self.set_property('draw-attention', 'true')
-		self.show()
+	
+	def unstress(self):
+		self.set_property('draw-attention', 'false')
 		
 	def click(self, server, something):
-		server.set_property('draw-attention', 'false')
+		self.unstress()
 		log.info('TODO - open settings')
