@@ -18,16 +18,18 @@
 
 # python imports
 import indicate
-import subprocess
 import os
 import gobject
 import urllib2
+
+# own imports
+from includes.settings import Settings
 
 import logging
 log = logging.getLogger('Log.Indicator')
 
 class Indicator():
-	def __init__(self, config, loadedPlugins, notifier, settings):
+	def __init__(self, confFile, pluginDir):
 		self.desktopFile 	= os.path.join(os.getcwd(),'data','mailnotify.desktop')
 		self.server	= indicate.indicate_server_ref_default()
 		self.server.set_type('message.mail')
@@ -35,24 +37,68 @@ class Indicator():
 		self.server.connect('server-display', self.click)
 		self.server.show()
 		
-		self.settings = settings
-
-		self.notifier = notifier
-		self.config = config
-		self.loadedPlugins = loadedPlugins
+		self.initConfig 	= ( confFile, pluginDir )		
+		self.notifier 		= {}	
 		
+		self.loadConfig()
 		self.config['refreshtimeout'] = int(self.config['refreshtimeout'])
+		self.loadAndStartPlugins()
 		
 		self.indicators = {}
 		if self.config['plugins'] == {}:
 			self.indicators['setup'] = SettingsIndicatorItem(
 				'You have to setup a account'
 			)
-		if not len(self.config['plugins']) == len(notifier):		
+		if not len(self.config['plugins']) == len(self.notifier):		
 			self.indicators['error'] = SettingsIndicatorItem(
 				'One or more accounts are not supported'
 			)
 		self.refresh()
+		
+	def loadConfig(self):
+		log.info('loading config ...')
+		s = Settings(self.initConfig[0])
+		self.config = s.config
+		
+	def loadAndStartPlugins(self):
+		p = []
+		for i in self.config['plugins']:
+			q = self.config['plugins'][i]
+			if not q['plugin'] in p:
+				p.append(q['plugin'])			
+		
+		log.info('importing plugins ...')
+		g = globals()
+		l = locals()
+		gs = []
+		ls = []
+		ns = []
+	
+		plugins = []
+		notFoundPlugins = []
+		for n in p:
+			if os.path.isfile(os.path.join(self.initConfig[1],n+'.py')):
+				log.info('plugin %s ... \tfound'%n)
+				plugins.append('.'.join(['plugins',n]))
+				gs.append(g)
+				ls.append(l)
+				ns.append('Notifier')
+			else:
+				log.warning('plugin %s ... \tnot found'%n)
+				notFoundPlugins.append(n)	
+		
+		modules = map(__import__, plugins, gs, ls, ns)
+				
+		log.info('starting plugins ...')
+		loadedPlugins = {}
+		for m in modules:
+			loadedPlugins[m.__name__[8:]] = m
+	
+		for i in self.config['plugins']:
+			p = self.config['plugins'][i]
+			if not p['plugin'] in notFoundPlugins:
+				self.notifier[i] = loadedPlugins[p['plugin']].Notifier(p)
+		
 		
 	def click(self, server, something):
 		log.info('TODO - open settings')
