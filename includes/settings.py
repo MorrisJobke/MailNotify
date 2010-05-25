@@ -20,6 +20,8 @@
 import ConfigParser
 import os
 
+# own imports
+from includes.keyring import Keyring
 
 import logging
 log = logging.getLogger('Log.Settings')
@@ -52,6 +54,8 @@ class Settings:
 	
 		self.write()
 		
+		self.getCredentials()
+		
 	def convert(self, s, o):
 		n = self.c.get(s, o)
 		try:
@@ -67,3 +71,10 @@ class Settings:
 		with open(self.file, 'wb') as configfile:
 			self.c.write(configfile)
 			
+	def getCredentials(self):
+		gkr = Keyring('MailNotify', 'login data')
+		for p in self.config['plugins']:
+			log.info('receiving credentials ...')
+			username, password = gkr.getCredential(p)
+			self.config['plugins'][p]['username'] = username
+			self.config['plugins'][p]['password'] = password	
