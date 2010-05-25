@@ -19,14 +19,13 @@
 # python imports
 import ConfigParser
 import os
+import logging
 
 # own imports
 from includes.keyring import Keyring
 
-import logging
+# log
 log = logging.getLogger('Log.Settings')
-
-from pprint import pprint
 
 class Settings:
 	def __init__(self, file):
@@ -35,8 +34,6 @@ class Settings:
 		self.c 		= ConfigParser.ConfigParser()
 		if not os.path.exists(os.path.dirname(self.file)):
 			os.mkdir(os.path.dirname(self.file))
-		if not os.path.exists(self.file):
-			self.c.readfp(open('data/default.conf'))
 		self.c.read(self.file)
 		
 		self.config = {'plugins':{}}
@@ -50,12 +47,15 @@ class Settings:
 				tmp = {}
 				for p in items:					
 					tmp[p[0]] = self.convert(s, p[0])
+				if not 'enableprefix' in tmp:
+					tmp['enableprefix'] = False
 				self.config['plugins'][s] = tmp
-	
-		self.write()
+		
+		if not 'refreshtimeout' in self.config:
+			self.config['refreshtimeout'] = 60
 		
 		self.getCredentials()
-		
+				
 	def convert(self, s, o):
 		n = self.c.get(s, o)
 		try:
