@@ -28,7 +28,7 @@ from includes.indicator import Indicator
 from includes.settings import Settings
 
 LOGFILE = './log'
-LOGFORMAT = '%(levelname)s\t%(name)s\t%(relativeCreated)d\t%(message)s'
+LOGFORMAT = '%(levelname)s\t%(name)-20s\t%(relativeCreated)d\t%(message)s'
 PLUGINDIR = './plugins'
 CONFIGFILE = '~/.config/mailnotify/settings.conf'
 
@@ -53,14 +53,6 @@ if __name__ == '__main__':
 	log.info('loading config ...')
 	s = Settings(CONFIGFILE)
 	config = s.config
-	print config
-#	config = {}
-#	config['refreshTimeout'] = 5
-#	config['plugins'] = {
-#		'Gmail-1': {'plugin': 'Gmail', 'username': 'huhu', 'password': 'dsafsd', 'labels': 'inbox,friends', 'prefix': 'Gmail - ', 'enablePrefix': True},
-#		'Gmail2-1': {'plugin': 'Gmail2', 'username': 'huhu2', 'password': 'moin', 'labels': 'inbox', 'prefix': 'Gmail2 - ', 'enablePrefix': True},
-#		'Webde-1': {'plugin': 'Webde', 'username': 'huhu2', 'password': 'moin', 'labels': 'inbox', 'prefix': 'Webde - ', 'enablePrefix': True}
-#	}
 	
 	p = []
 	for i in config['plugins']:
@@ -102,6 +94,6 @@ if __name__ == '__main__':
 		if not p['plugin'] in notFoundPlugins:
 			notifier[i] = loadedPlugins[p['plugin']].Notifier(p)
 	
-	i = Indicator(config, loadedPlugins, notifier)
+	i = Indicator(config, loadedPlugins, notifier, s)
 	
 	gtk.main()
