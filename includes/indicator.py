@@ -18,39 +18,87 @@
 
 # python imports
 import indicate
-import subprocess
 import os
 import gobject
 import urllib2
-
 import logging
+
+# own imports
+from includes.settings import Settings
+
+# log
 log = logging.getLogger('Log.Indicator')
 
 class Indicator():
-	def __init__(self, config, loadedPlugins, notifier):
+	def __init__(self, confFile, pluginDir):
 		self.desktopFile 	= os.path.join(os.getcwd(),'data','mailnotify.desktop')
 		self.server	= indicate.indicate_server_ref_default()
 		self.server.set_type('message.mail')
 		self.server.set_desktop_file(self.desktopFile)
 		self.server.connect('server-display', self.click)
 		self.server.show()
-
-		self.notifier = notifier
-		self.config = config
-		self.loadedPlugins = loadedPlugins
 		
+		self.loadConfig(confFile)
 		self.config['refreshtimeout'] = int(self.config['refreshtimeout'])
+		
+		self.notifier = {}	
+		self.loadAndStartPlugins(pluginDir)
 		
 		self.indicators = {}
 		if self.config['plugins'] == {}:
 			self.indicators['setup'] = SettingsIndicatorItem(
 				'You have to setup a account'
 			)
-		if not len(self.config['plugins']) == len(notifier):		
+		if not len(self.config['plugins']) == len(self.notifier):		
 			self.indicators['error'] = SettingsIndicatorItem(
 				'One or more accounts are not supported'
 			)
 		self.refresh()
+		
+	def loadConfig(self, confFile):
+		log.info('loading config ...')
+		self.config = Settings(confFile).config
+		
+	def loadAndStartPlugins(self, pluginDir):
+		p = []
+		for i in self.config['plugins']:
+			q = self.config['plugins'][i]
+			if 'enableprefix' in q and 'plugin' in q and \
+				'username' in q and 'password' in q:
+				if not q['plugin'] in p:
+					p.append(q['plugin'])			
+		
+		log.info('importing plugins ...')
+		g = globals()
+		l = locals()
+		gs = []
+		ls = []
+		ns = []
+	
+		plugins = []
+		notFoundPlugins = []
+		for n in p:
+			if os.path.isfile(os.path.join(pluginDir,n+'.py')):
+				log.info('plugin %s ... \tfound'%n)
+				plugins.append('.'.join(['plugins',n]))
+				gs.append(g)
+				ls.append(l)
+				ns.append('Notifier')
+			else:
+				log.warning('plugin %s ... \tnot found'%n)
+				notFoundPlugins.append(n)	
+		
+		modules = map(__import__, plugins, gs, ls, ns)
+				
+		log.info('starting plugins ...')
+		loadedPlugins = {}
+		for m in modules:
+			loadedPlugins[m.__name__[8:]] = m
+	
+		for i in self.config['plugins']:
+			p = self.config['plugins'][i]
+			if 'plugin' in p and not p['plugin'] in notFoundPlugins:
+				self.notifier[i] = loadedPlugins[p['plugin']].Notifier(p)
 		
 	def click(self, server, something):
 		log.info('TODO - open settings')
@@ -61,7 +109,7 @@ class Indicator():
 				self.notifier[n].check()
 			except urllib2.HTTPError, e:
 				if e.code == 401:
-					log.error('ERROR: Unauthorized - plugin: %s'%n)
+					log.info('Unauthorized - plugin: %s'%n)
 					tmp = self.config['plugins'][n]
 					tmp['password'] = '*****'
 					log.debug(tmp)
@@ -79,14 +127,30 @@ class Indicator():
 						self.indicators['error'] = SettingsIndicatorItem(
 							title
 						)
+				else:
+					log.error('An HTTPError occured ...')
+					log.error(e)
+					log.error('code: ' . e.code)
 			except urllib2.URLError, e:
-				if str(e) == '<urlopen error [Errno -2] Name or service not known>':
-					log.info('lost internet connection')
-					title = 'May you have no internet connection'
+				if str(e.reason) == '[Errno -2] Name or service not known':
+					log.info('Lost internet connection')
+					
+					title = 'May you haven\'t internet connection'
+					
 					if 'error' in self.indicators and \
 						not self.indicators['error'].subject == title:
 						self.indicators['error'].hide()
 						del self.indicators['error']
+
+					if 'error' not in self.indicators:
+						self.indicators['error'] = SettingsIndicatorItem(
+							title
+						)
+						self.indicators['error'].unstress()
+				else:				
+					log.error('An URLError occured ...')
+					log.error(e)
+					log.error('reason: ' . e.reason)
 					
 					if 'error' not in self.indicators:
 						self.indicators['error'] = SettingsIndicatorItem(
@@ -114,7 +178,7 @@ class SettingsIndicatorItem(indicate.Indicator):
 		self.set_property('name', subject)
 		self.connect('user-display', self.click)
 		self.stress()
-		self.show()
+		self.show()	
 		
 	def click(self, server, something):
 		self.unstress()

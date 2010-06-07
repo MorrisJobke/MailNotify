@@ -47,7 +47,7 @@ class Notifier():
 		self.unread = UnreadMails(
 			'https://mail.google.com/mail/#search/label:%s',
 			prefix,
-			2
+			1
 		)
 		
 	def check(self):

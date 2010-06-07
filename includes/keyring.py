@@ -28,7 +28,9 @@ class Keyring:
 		self.separator 	= separator
 		self.gconfkey 	= '/apps/gnome-python-desktop/keyring_auth_token'
 
-	def getCredential(self):
+	def getCredential(self, appDesc=None):
+		if not appDesc == None:
+			self.appDesc = appDesc
 		authToken = gconf.client_get_default().get_int(self.gconfkey)
 		if authToken > 0:
 			try:
@@ -51,7 +53,9 @@ class Keyring:
 		
 		return username, password
 		
-	def setCredential(self, username, password):
+	def setCredential(self, username, password, appDesc=None):
+		if not appDesc == None:
+			self.appDesc = appDesc
 		authToken = gnomekeyring.item_create_sync(
 			self.keyring,
 			gnomekeyring.ITEM_GENERIC_SECRET,
@@ -60,4 +64,4 @@ class Keyring:
 			self.separator.join((username, password)), 
 			True
 		)
-		gconf.client_get_default().set_int(self.gconfKey, authToken)
+		gconf.client_get_default().set_int(self.gconfkey, authToken)
