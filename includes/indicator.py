@@ -79,7 +79,20 @@ class Indicator():
 						self.indicators['error'] = SettingsIndicatorItem(
 							title
 						)
+			except urllib2.URLError, e:
+				if str(e) == '<urlopen error [Errno -2] Name or service not known>':
+					log.info('lost internet connection')
+					title = 'May you have no internet connection'
+					if 'error' in self.indicators and \
+						not self.indicators['error'].subject == title:
+						self.indicators['error'].hide()
+						del self.indicators['error']
 					
+					if 'error' not in self.indicators:
+						self.indicators['error'] = SettingsIndicatorItem(
+							title
+						)
+						self.indicators['error'].unstress()
 			except Exception, e:
 				log.error('An error occured ...')
 				log.error(e)
@@ -100,9 +113,15 @@ class SettingsIndicatorItem(indicate.Indicator):
 		self.subject = subject
 		self.set_property('name', subject)
 		self.connect('user-display', self.click)
-		self.set_property('draw-attention', 'true')
+		self.stress()
 		self.show()
 		
 	def click(self, server, something):
-		server.set_property('draw-attention', 'false')
+		self.unstress()
 		log.info('TODO - open settings')
+		
+	def stress(self):
+		self.set_property('draw-attention', 'true')
+		
+	def unstress(self):
+		self.set_property('draw-attention', 'false')
