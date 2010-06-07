@@ -28,7 +28,7 @@ from includes.indicator import Indicator
 from includes.settings import Settings
 
 LOGFILE = './log'
-LOGFORMAT = '%(levelname)s\t%(name)s\t%(relativeCreated)d\t%(message)s'
+LOGFORMAT = '%(levelname)s\t%(name)20s\t%(relativeCreated)d\t%(message)s'
 PLUGINDIR = './plugins'
 CONFIGFILE = '~/.config/mailnotify/settings.conf'
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
 	log.info('loading config ...')
 	s = Settings(CONFIGFILE)
 	config = s.config
-	print config
+	#print config
 #	config = {}
 #	config['refreshTimeout'] = 5
 #	config['plugins'] = {
