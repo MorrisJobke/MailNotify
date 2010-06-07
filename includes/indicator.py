@@ -117,7 +117,6 @@ class Indicator():
 					title += ' - Unauthorized Account: '
 					title += self.config['plugins'][n]['username']
 					
-					
 					if 'error' in self.indicators and \
 						not self.indicators['error'].subject == title:
 						self.indicators['error'].hide()
@@ -131,10 +130,25 @@ class Indicator():
 					log.error('An HTTPError occured ...')
 					log.error(e)
 					log.error('code: ' . e.code)
+					
 			except urllib2.URLError, e:
 				if str(e.reason) == '[Errno -2] Name or service not known':
-					log.info('Lost internet connection')
+					log.info('Network disabled')
 					
+					title = 'May you haven\'t network enabled'
+					
+					if 'error' in self.indicators and \
+						not self.indicators['error'].subject == title:
+						self.indicators['error'].hide()
+						del self.indicators['error']
+
+					if 'error' not in self.indicators:
+						self.indicators['error'] = SettingsIndicatorItem(
+							title
+						)
+						self.indicators['error'].unstress()
+				elif str(e.reason) == '[Errno 101] Network is unreachable':
+					log.info('Lost internet connection')
 					title = 'May you haven\'t internet connection'
 					
 					if 'error' in self.indicators and \
@@ -150,13 +164,8 @@ class Indicator():
 				else:				
 					log.error('An URLError occured ...')
 					log.error(e)
-					log.error('reason: ' . e.reason)
+					log.error('reason: ' + str(e.reason) )
 					
-					if 'error' not in self.indicators:
-						self.indicators['error'] = SettingsIndicatorItem(
-							title
-						)
-						self.indicators['error'].unstress()
 			except Exception, e:
 				log.error('An error occured ...')
 				log.error(e)
