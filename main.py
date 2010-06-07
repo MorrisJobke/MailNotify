@@ -65,8 +65,10 @@ if __name__ == '__main__':
 	p = []
 	for i in config['plugins']:
 		q = config['plugins'][i]
-		if not q['plugin'] in p:
-			p.append(q['plugin'])			
+		if 'enableprefix' in q and 'plugin' in q and \
+			'username' in q and 'password' in q:
+			if not q['plugin'] in p:
+				p.append(q['plugin'])			
 		
 	log.info('importing plugins ...')
 	plugins = []
@@ -99,7 +101,7 @@ if __name__ == '__main__':
 	notifier = {}	
 	for i in config['plugins']:
 		p = config['plugins'][i]
-		if not p['plugin'] in notFoundPlugins:
+		if 'plugin' in p and not p['plugin'] in notFoundPlugins:
 			notifier[i] = loadedPlugins[p['plugin']].Notifier(p)
 	
 	i = Indicator(config, loadedPlugins, notifier)
