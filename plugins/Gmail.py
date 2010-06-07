@@ -42,7 +42,7 @@ class Notifier():
 			)[:-1])
 		)
 		prefix = ''
-		if self.config['enablePrefix']:
+		if self.config['enableprefix']:
 			prefix = self.config['prefix']
 		self.unread = UnreadMails(
 			'https://mail.google.com/mail/#search/label:%s',
