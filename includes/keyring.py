@@ -26,12 +26,12 @@ class Keyring:
 		self.appName 	= appName
 		self.appDesc	= appDesc
 		self.separator 	= separator
-		self.gconfkey 	= '/apps/gnome-python-desktop/keyring_auth_token'
+		self.gconfkey 	= '/apps/mailnotify/keyring_auth_token'
 
 	def getCredential(self, appDesc=None):
-		if not appDesc == None:
-			self.appDesc = appDesc
-		authToken = gconf.client_get_default().get_int(self.gconfkey)
+		if appDesc == None:
+			appDesc = self.appDesc
+		authToken = gconf.client_get_default().get_int(self.gconfkey + '_' + appDesc)
 		if authToken > 0:
 			try:
 				secret = gnomekeyring.item_get_info_sync(
@@ -54,14 +54,15 @@ class Keyring:
 		return username, password
 		
 	def setCredential(self, username, password, appDesc=None):
-		if not appDesc == None:
-			self.appDesc = appDesc
+		if appDesc == None:
+			appDesc = self.appDesc
+		appName = '%s, %s'%(self.appName, appDesc)
 		authToken = gnomekeyring.item_create_sync(
 			self.keyring,
 			gnomekeyring.ITEM_GENERIC_SECRET,
-			'%s, %s'%(self.appName, self.appDesc),
-			dict(appname='%s, %s'%(self.appName, self.appDesc)),
+			appName,
+			dict(appname=appName),
 			self.separator.join((username, password)), 
 			True
 		)
-		gconf.client_get_default().set_int(self.gconfkey, authToken)
+		gconf.client_get_default().set_int(self.gconfkey + '_' + appDesc, authToken)

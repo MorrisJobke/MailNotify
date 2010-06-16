@@ -77,4 +77,39 @@ class Settings:
 			log.info('receiving credentials ...')
 			username, password = gkr.getCredential(p)
 			self.config['plugins'][p]['username'] = username
-			self.config['plugins'][p]['password'] = password	
+			self.config['plugins'][p]['password'] = password
+				
+class SettingsSaver:
+	def __init__(self, file, config):
+		log.info('loading settings ...')
+		self.file 	= os.path.expanduser(file)
+		if not os.path.exists(os.path.dirname(self.file)):
+			os.mkdir(os.path.dirname(self.file))
+		self.config = config
+		
+		
+	def save(self):
+		self.setCredentials()
+		c = ConfigParser.ConfigParser()
+		c.add_section('Main')
+		for i in self.config['plugins']:
+			c.add_section(i)
+			p = self.config['plugins'][i]
+			for j in p:
+				c.set(i, j, p[j])
+		for i in self.config:
+			if not i == 'plugins':
+				c.set('Main', i, self.config[i])
+		
+		with open(self.file, 'wb') as configfile:
+			c.write(configfile)
+			
+	def setCredentials(self):
+		gkr = Keyring('MailNotify', 'login data')
+		for p in self.config['plugins']:
+			log.info('saving credentials ...')
+			username = self.config['plugins'][p]['username']
+			password = self.config['plugins'][p]['password']
+			gkr.setCredential(username, password, p)
+			del self.config['plugins'][p]['password']
+			del self.config['plugins'][p]['username']

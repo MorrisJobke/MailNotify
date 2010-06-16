@@ -24,9 +24,8 @@ import sys
 import os
 import gobject
 
-import pprint
-
 # own imports
+from includes.settings import SettingsSaver
 from includes.settings import Settings
 
 LOGFILE = './log'
@@ -124,7 +123,6 @@ class MailNotifySettings:
 			save settings and close window 
 		'''
 		self.save()
-		print 'quit settings dialog'
 		gtk.main_quit()
 	
 	def select(self, w):
@@ -153,32 +151,7 @@ class MailNotifySettings:
 		'''
 			loads initial config
 		'''
-	
-		#TODO receive config
-		a = {
-			'refreshtimeout': 60, 
-			'plugins': {
-				'Gmail-1': {
-					'username': 'peter', 
-					'password': 'asdasd', 
-					'enableprefix': False, 
-					'plugin': 'Gmail'
-				},
-				'Gmail-2': {
-					'username': 'hans', 
-					'password': 'asdasd', 
-					'enableprefix': False, 
-					'plugin': 'Gmail'
-				},
-				'Gmail-3': {
-					'username': 'karl', 
-					'password': 'asdasd', 
-					'enableprefix': False, 
-					'plugin': 'Webde'
-				}
-			}
-		}
-		self.config = a
+		self.config = Settings(CONFIGFILE).config
 		self.reloadAccountView()
 			
 	def reloadAccountView(self):
@@ -190,6 +163,10 @@ class MailNotifySettings:
 		a = self.config['plugins']
 		b = 0
 		for i in a:
+			if a[i]['username'] == None:
+				self.config['plugins'][i]['username'] = ''
+			if a[i]['password'] == None:
+				self.config['plugins'][i]['password'] = ''
 			title = '%s (%s)'%(
 				a[i]['plugin'], 
 				a[i]['username']
@@ -218,27 +195,30 @@ class MailNotifySettings:
 			adds new account
 		'''
 		self.setSensitiveInput(True)
-		pluginId = 'Unknown'
+		
+		self.currentIndex = self.getPluginId()
+						
+		self.config['plugins'][self.currentIndex] = {
+			'username': '',
+			'password': '',			
+			'plugin': 'Unknown',
+			'enableprefix':	False
+		}
+		self.reloadAccountView()	
+		
+	def getPluginId(self, plugin='Unknown'):
+		pluginId = plugin + '-1'
 		while pluginId in self.config['plugins']:
 			if pluginId[-1].isdigit():
 				tmp = pluginId.split('-')
 				pluginId = tmp[0] + '-' + str(int(tmp[1]) + 1)
 			else:
 				pluginId += '-1'
-		
-		print pluginId
-		self.currentIndex = pluginId
-						
-		self.config['plugins'][pluginId] = {
-			'username': '',
-			'password': '',			
-			'plugin': 'Unknown',
-			'enableprefix':	False
-		}
-		self.reloadAccountView()		
+		return pluginId
 		
 	def save(self):
-		pass
+		s = SettingsSaver(CONFIGFILE, self.config)
+		s.save()
 		
 	def changed(self, w):	
 		'''
@@ -255,15 +235,22 @@ class MailNotifySettings:
 		if self.timeouts > 0:
 			return
 		
-		if not self.currentIndex == '':
+		if not self.currentIndex == '':			
+			p = self.cbPlugin.get_active()
+			if not p == -1 and p < len(self.plugins):
+				plugin = self.plugins[p]
+				if not self.currentIndex[:len(plugin)] == plugin:
+					tmpIndex = self.getPluginId(plugin)
+					self.config['plugins'][tmpIndex] = \
+						self.config['plugins'][self.currentIndex]
+					del self.config['plugins'][self.currentIndex]
+					self.currentIndex = tmpIndex
+				self.config['plugins'][self.currentIndex]['plugin'] = plugin
+
 			self.config['plugins'][self.currentIndex]['username'] = \
 				self.entryUsername.get_text()
 			self.config['plugins'][self.currentIndex]['password'] = \
 				self.entryPassword.get_text()
-			p = self.cbPlugin.get_active()
-			if not p == -1 and p < len(self.plugins):
-				self.config['plugins'][self.currentIndex]['plugin'] = \
-					self.plugins[p]
 		
 			self.reloadAccountView()
 		
