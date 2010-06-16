@@ -31,10 +31,16 @@ from includes.settings import Settings
 # log
 log = logging.getLogger('Log.Indicator')
 
+SETTINGSAPP = './settings.py'
+SETTINGSAPP = os.path.join(
+	sys.path[0],
+	SETTINGSAPP
+)
+
 class Indicator():
 	def __init__(self, confFile, pluginDir):
 		self.desktopFile 	= os.path.join(
-			os.getcwd(),
+			sys.path[0],
 			'data',
 			'mailnotify.desktop'
 		)
@@ -79,11 +85,13 @@ class Indicator():
 		self.indicators = {}
 		if self.config['plugins'] == {}:
 			self.indicators['setup'] = SettingsIndicatorItem(
-				'You have to setup a account'
+				'You have to setup a account',
+				self.click
 			)
 		if not len(self.config['plugins']) == len(self.notifier):		
 			self.indicators['error'] = SettingsIndicatorItem(
-				'One or more accounts are not supported'
+				'One or more accounts are not supported',
+				self.click
 			)
 		
 		self.refresh()

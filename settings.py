@@ -33,6 +33,11 @@ LOGFORMAT = '%(levelname)s\t%(name)-20s\t%(relativeCreated)d\t%(message)s'
 PLUGINDIR = './plugins'
 CONFIGFILE = '~/.config/mailnotify/settings.conf'
 
+PLUGINDIR = os.path.join(
+	sys.path[0],
+	PLUGINDIR
+)
+
 LEVELS = {'debug': logging.DEBUG,
           'info': logging.INFO,
           'warning': logging.WARNING,
@@ -41,7 +46,10 @@ LEVELS = {'debug': logging.DEBUG,
 
 class MailNotifySettings:
 	def __init__(self):
-		gladeFile = 'data/settings.glade'
+		gladeFile = os.path.join(
+			sys.path[0],
+			'data/settings.glade'
+		)
 		self.ui = gtk.Builder()	
 		self.ui.add_from_file(gladeFile)	
 		self.ui.connect_signals({

@@ -21,6 +21,7 @@ import gtk
 import logging
 import logging.handlers
 import sys
+import os
 
 # own imports
 from includes.indicator import Indicator
@@ -30,7 +31,10 @@ LOGFORMAT = '%(levelname)s\t%(name)-20s\t%(relativeCreated)d\t%(message)s'
 PLUGINDIR = './plugins'
 CONFIGFILE = '~/.config/mailnotify/settings.conf'
 
-SETTINGSAPP = './settings.py'
+PLUGINDIR = os.path.join(
+	sys.path[0],
+	PLUGINDIR
+)
 
 LEVELS = {'debug': logging.DEBUG,
           'info': logging.INFO,
