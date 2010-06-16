@@ -28,7 +28,7 @@ import gobject
 from includes.settings import SettingsSaver
 from includes.settings import Settings
 
-LOGFILE = './log'
+LOGFILE = './log-settings'
 LOGFORMAT = '%(levelname)s\t%(name)-20s\t%(relativeCreated)d\t%(message)s'
 PLUGINDIR = './plugins'
 CONFIGFILE = '~/.config/mailnotify/settings.conf'
@@ -257,17 +257,13 @@ class MailNotifySettings:
 	def main(self):
 		self.window.show()
 		gtk.main()
-		
-		
-		
-
-
 
 if __name__ == '__main__':
 	# initialize log	
 	logging.basicConfig(filename=LOGFILE, filemode='w', format=LOGFORMAT)
 	log = logging.getLogger('Log')
 	level = logging.NOTSET
+	level = logging.DEBUG # tmp
 	if len(sys.argv) > 1:
 		level = LEVELS.get(sys.argv[1], logging.NOTSET)
 	log.setLevel(level)

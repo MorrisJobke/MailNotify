@@ -22,6 +22,8 @@ import os
 import gobject
 import urllib2
 import logging
+import subprocess
+import sys
 
 # own imports
 from includes.settings import Settings
@@ -29,21 +31,48 @@ from includes.settings import Settings
 # log
 log = logging.getLogger('Log.Indicator')
 
+SETTINGSAPP = './settings.py'
+
 class Indicator():
 	def __init__(self, confFile, pluginDir):
-		self.desktopFile 	= os.path.join(os.getcwd(),'data','mailnotify.desktop')
+		self.desktopFile 	= os.path.join(
+			os.getcwd(),
+			'data',
+			'mailnotify.desktop'
+		)
+		self.confFile = confFile
+		self.pluginDir = pluginDir
+#		self.desktopFile 	= os.path.join(
+#			os.path.dirname(sys.argv[0]),
+#			'data',
+#			'mailnotify.desktop'
+#		)
 		self.server	= indicate.indicate_server_ref_default()
 		self.server.set_type('message.mail')
 		self.server.set_desktop_file(self.desktopFile)
 		self.server.connect('server-display', self.click)
 		self.server.show()
 		
-		self.loadConfig(confFile)
+		self.to = 0
+		
+		self.start(True)
+		
+	def start(self, init=False):
+		self.loadConfig()
 		self.config['refreshtimeout'] = int(self.config['refreshtimeout'])
 		
-		self.notifier = {}	
-		self.loadAndStartPlugins(pluginDir)
+		self.config['refreshtimeout'] = 10
 		
+		if not init:
+			for i in self.notifier:
+				self.notifier[i].unread.clear()
+		self.notifier = {}	
+		self.loadAndStartPlugins()
+		
+		if not init:
+			for i in self.indicators:
+				self.indicators[i].hide()
+				
 		self.indicators = {}
 		if self.config['plugins'] == {}:
 			self.indicators['setup'] = SettingsIndicatorItem(
@@ -53,13 +82,14 @@ class Indicator():
 			self.indicators['error'] = SettingsIndicatorItem(
 				'One or more accounts are not supported'
 			)
+		
 		self.refresh()
 		
-	def loadConfig(self, confFile):
+	def loadConfig(self):
 		log.info('loading config ...')
-		self.config = Settings(confFile).config
+		self.config = Settings(self.confFile).config
 		
-	def loadAndStartPlugins(self, pluginDir):
+	def loadAndStartPlugins(self):
 		p = []
 		for i in self.config['plugins']:
 			q = self.config['plugins'][i]
@@ -78,7 +108,7 @@ class Indicator():
 		plugins = []
 		notFoundPlugins = []
 		for n in p:
-			if os.path.isfile(os.path.join(pluginDir,n+'.py')):
+			if os.path.isfile(os.path.join(self.pluginDir,n+'.py')):
 				log.info('plugin %s ... \tfound'%n)
 				plugins.append('.'.join(['plugins',n]))
 				gs.append(g)
@@ -100,10 +130,17 @@ class Indicator():
 			if 'plugin' in p and not p['plugin'] in notFoundPlugins:
 				self.notifier[i] = loadedPlugins[p['plugin']].Notifier(p)
 		
-	def click(self, server, something):
-		log.info('TODO - open settings')
+	def click(self, server=None, something=None):
+		log.info('open settings')
+		subprocess.call([SETTINGSAPP, 'debug'])
+		self.start()
+		self.to += 1
+		self.refresh(True)	
 		
-	def refresh(self):
+	def refresh(self, new=False):
+		if not new and self.to > 0:
+			self.to -= 1
+			return
 		for n in self.notifier:
 			try:
 				self.notifier[n].check()
@@ -124,7 +161,8 @@ class Indicator():
 					
 					if 'error' not in self.indicators:
 						self.indicators['error'] = SettingsIndicatorItem(
-							title
+							title,
+							self.click
 						)
 				else:
 					log.error('An HTTPError occured ...')
@@ -144,7 +182,8 @@ class Indicator():
 
 					if 'error' not in self.indicators:
 						self.indicators['error'] = SettingsIndicatorItem(
-							title
+							title,
+							self.click
 						)
 						self.indicators['error'].unstress()
 				elif str(e.reason) == '[Errno 101] Network is unreachable':
@@ -158,7 +197,8 @@ class Indicator():
 
 					if 'error' not in self.indicators:
 						self.indicators['error'] = SettingsIndicatorItem(
-							title
+							title,
+							self.click
 						)
 						self.indicators['error'].unstress()
 				else:				
@@ -170,6 +210,10 @@ class Indicator():
 				log.error('An error occured ...')
 				log.error(e)
 			else:
+				#if 'error' in self.indicators:
+				#	self.indicators['error'].hide()
+				#	del self.indicators['error']
+					
 				if self.notifier[n].unread:
 					self.notifier[n].unread.indicate()
 					for u in self.notifier[n].unread.mails:
@@ -178,11 +222,12 @@ class Indicator():
 		gobject.timeout_add_seconds(self.config['refreshtimeout'], self.refresh)
 		
 class SettingsIndicatorItem(indicate.Indicator):		
-	def __init__(self, subject):
+	def __init__(self, subject, callback):
 		'''
-		indicator for error and setting items		
+			indicator for error and setting items		
 		'''
 		indicate.Indicator.__init__(self)
+		self.callback = callback
 		self.subject = subject
 		self.set_property('name', subject)
 		self.connect('user-display', self.click)
@@ -190,8 +235,8 @@ class SettingsIndicatorItem(indicate.Indicator):
 		self.show()	
 		
 	def click(self, server, something):
-		self.unstress()
-		log.info('TODO - open settings')
+		self.unstress()		
+		self.callback()
 		
 	def stress(self):
 		self.set_property('draw-attention', 'true')
