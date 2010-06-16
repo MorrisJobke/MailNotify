@@ -28,7 +28,7 @@ import gobject
 from includes.settings import SettingsSaver
 from includes.settings import Settings
 
-LOGFILE = './log-settings'
+LOGFILE = '/tmp/mailnotify-settings-log'
 LOGFORMAT = '%(levelname)s\t%(name)-20s\t%(relativeCreated)d\t%(message)s'
 PLUGINDIR = './plugins'
 CONFIGFILE = '~/.config/mailnotify/settings.conf'
@@ -207,6 +207,10 @@ class MailNotifySettings:
 		self.reloadAccountView()	
 		
 	def getPluginId(self, plugin='Unknown'):
+		'''
+			creates a unique id for a plugin
+			format: PLUGINNAME-NUMBER
+		'''
 		pluginId = plugin + '-1'
 		while pluginId in self.config['plugins']:
 			if pluginId[-1].isdigit():
@@ -217,6 +221,9 @@ class MailNotifySettings:
 		return pluginId
 		
 	def save(self):
+		'''
+			save settings
+		'''
 		s = SettingsSaver(CONFIGFILE, self.config)
 		s.save()
 		

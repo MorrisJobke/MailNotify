@@ -25,10 +25,12 @@ import sys
 # own imports
 from includes.indicator import Indicator
 
-LOGFILE = './log'
+LOGFILE = '/tmp/mailnotify-log'
 LOGFORMAT = '%(levelname)s\t%(name)-20s\t%(relativeCreated)d\t%(message)s'
 PLUGINDIR = './plugins'
 CONFIGFILE = '~/.config/mailnotify/settings.conf'
+
+SETTINGSAPP = './settings.py'
 
 LEVELS = {'debug': logging.DEBUG,
           'info': logging.INFO,

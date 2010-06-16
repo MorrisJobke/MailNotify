@@ -31,8 +31,6 @@ from includes.settings import Settings
 # log
 log = logging.getLogger('Log.Indicator')
 
-SETTINGSAPP = './settings.py'
-
 class Indicator():
 	def __init__(self, confFile, pluginDir):
 		self.desktopFile 	= os.path.join(
@@ -58,6 +56,11 @@ class Indicator():
 		self.start(True)
 		
 	def start(self, init=False):
+		'''
+			wrapper method for all (re)loading tasks
+		
+			load config, load plugins, (re)initialize notifiers and indicators
+		'''
 		self.loadConfig()
 		self.config['refreshtimeout'] = int(self.config['refreshtimeout'])
 		
@@ -86,10 +89,16 @@ class Indicator():
 		self.refresh()
 		
 	def loadConfig(self):
+		'''
+			receive config
+		'''
 		log.info('loading config ...')
 		self.config = Settings(self.confFile).config
 		
 	def loadAndStartPlugins(self):
+		'''
+			check plugins and import available and needed ones
+		'''
 		p = []
 		for i in self.config['plugins']:
 			q = self.config['plugins'][i]
@@ -131,13 +140,19 @@ class Indicator():
 				self.notifier[i] = loadedPlugins[p['plugin']].Notifier(p)
 		
 	def click(self, server=None, something=None):
+		'''
+			called on click: main item or error item
+		'''
 		log.info('open settings')
-		subprocess.call([SETTINGSAPP, 'debug'])
+		subprocess.call([SETTINGSAPP])
 		self.start()
 		self.to += 1
 		self.refresh(True)	
 		
 	def refresh(self, new=False):
+		'''
+			main functionality - checks for new mails :)
+		'''
 		if not new and self.to > 0:
 			self.to -= 1
 			return
