@@ -41,10 +41,10 @@ if __name__ == '__main__':
 	logging.basicConfig(filename=LOGFILE, filemode='w', format=LOGFORMAT)
 	log = logging.getLogger('Log')
 	level = logging.NOTSET
+	level = logging.DEBUG # tmp
 	if len(sys.argv) > 1:
 		level = LEVELS.get(sys.argv[1], logging.NOTSET)
 	log.setLevel(level)
 	
 	i = Indicator(CONFIGFILE, PLUGINDIR)
-	
 	gtk.main()
