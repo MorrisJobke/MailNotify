@@ -21,6 +21,10 @@ import gtk
 import logging
 import logging.handlers
 import sys
+import os
+import gobject
+
+import pprint
 
 # own imports
 from includes.settings import Settings
@@ -46,26 +50,64 @@ class MailNotifySettings:
 			'on_settingsDialog_destroy': 			gtk.main_quit,
 			'on_accountView_cursor_changed':		self.select,
 			'on_buttonDelete_clicked':				self.delete,
-			'on_buttonAdd_clicked':					self.a,
+			'on_buttonAdd_clicked':					self.add,
+			'on_setting_changed':					self.changed,
 		})
+		
+		self.timeouts = 0
+		self.currentIndex = ''
 		
 		self.window = self.ui.get_object('settingsDialog')			
 		self.accountView = self.ui.get_object('accountView')
 		self.entryUsername = self.ui.get_object('entryUsername')
 		self.entryPassword = self.ui.get_object('entryPassword')
+		self.cbPlugin = self.ui.get_object('comboboxPlugin')
+		self.setSensitiveInput(False)
 		
-		self.addColumn('Accounts', 0)
-		self.addColumn('Id', 1, False)
+		# plugin combobo
+		self.pluginList = gtk.ListStore(str)
+		self.cbPlugin.set_model(self.pluginList)	
+		c = gtk.CellRendererText()
+		self.cbPlugin.pack_start(c, True)
+		self.cbPlugin.add_attribute(c, 'text', 0)
+		self.loadPlugins()		
 		
+		# account view
+		self.addColumn(self.accountView, 'Accounts', 0)
+		self.addColumn(self.accountView, 'Id', 1, False)
 		self.accountList = gtk.ListStore(str, str)
 		self.accountView.set_model(self.accountList)	
-				
-		self.load()
+		self.loadAccounts()
 		
-	def addColumn(self, title, columnId, visible=True):
-		"""
+		
+	def loadPlugins(self):
+		'''
+			read all plugins in PLUGINDIR
+		'''
+		files = os.listdir(PLUGINDIR)
+		f = []
+		for i in files:
+			if not i[-3:] == 'pyc' and not i == "__init__.py":
+				f.append(i[:-3])	
+		self.plugins = f
+		
+		i = 0
+		for p in self.plugins:
+			self.pluginList.insert(i, [p])
+			i += 1
+	
+	def setSensitiveInput(self, b):	
+		'''
+			activate/deactivate all inputs
+		'''	
+		self.entryUsername.set_sensitive(b)
+		self.entryPassword.set_sensitive(b)
+		self.cbPlugin.set_sensitive(b)
+		
+	def addColumn(self, view, title, columnId, visible=True):
+		'''
 			adds column to account view
-		"""
+		'''
 		column = gtk.TreeViewColumn(
 			title, 
 			gtk.CellRendererText(), 
@@ -75,51 +117,64 @@ class MailNotifySettings:
 		column.set_sort_column_id(columnId)
 		column.set_visible(visible)
 		
-		self.accountView.append_column(column)
+		view.append_column(column)
 
 	def quit(self, widget):
-		"""
+		'''
 			save settings and close window 
-		"""
+		'''
 		self.save()
 		print 'quit settings dialog'
 		gtk.main_quit()
 	
 	def select(self, w):
-		"""
+		'''
 			fills input fields with current values
-		"""
+		'''
 		c = w.get_selection().get_selected()
-		p = self.config['plugins'][c[0].get_value(c[1], 1)]
-		self.entryUsername.set_text(p['username'])
-		self.entryPassword.set_text(p['password'])
+		if not c[1] == None:
+			self.currentIndex = c[0].get_value(c[1], 1)
+			p = self.config['plugins'][self.currentIndex]
+			self.entryUsername.set_text(p['username'])
+			self.entryPassword.set_text(p['password'])
+			a = 0
+			index = -1
+			for i in self.plugins:
+				if not i == p['plugin']:
+					a += 1
+				else:
+					index = a
+					break
+			self.cbPlugin.set_active(index)
+			self.setSensitiveInput(True)
 		
-	def load(self):
-		"""
+		
+	def loadAccounts(self):
+		'''
 			loads initial config
-		"""
+		'''
 	
 		#TODO receive config
 		a = {
 			'refreshtimeout': 60, 
 			'plugins': {
 				'Gmail-1': {
-					'username': 'morris.jobke', 
+					'username': 'peter', 
 					'password': 'asdasd', 
 					'enableprefix': False, 
 					'plugin': 'Gmail'
 				},
 				'Gmail-2': {
-					'username': 'morris.jobke2', 
+					'username': 'hans', 
 					'password': 'asdasd', 
 					'enableprefix': False, 
 					'plugin': 'Gmail'
 				},
 				'Gmail-3': {
-					'username': 'morris.jobke3', 
+					'username': 'karl', 
 					'password': 'asdasd', 
 					'enableprefix': False, 
-					'plugin': 'Gmail'
+					'plugin': 'Webde'
 				}
 			}
 		}
@@ -127,33 +182,90 @@ class MailNotifySettings:
 		self.reloadAccountView()
 			
 	def reloadAccountView(self):
-		"""
+		'''
 			reloads account view
-		"""
+		'''
 		self.accountList.clear()
-		a = self.config
-		for i in a['plugins']:
+		cursor = -1
+		a = self.config['plugins']
+		b = 0
+		for i in a:
 			title = '%s (%s)'%(
-				a['plugins'][i]['plugin'], 
-				a['plugins'][i]['username']
+				a[i]['plugin'], 
+				a[i]['username']
 			)
 			self.accountList.append([title, i])
+			if i == self.currentIndex:
+				cursor = b
+			b += 1
+		if cursor >= 0:
+			self.accountView.set_cursor(cursor)
 			
 	def delete(self, w):
-		"""
+		'''
 			deletes account
-		"""
+		'''
 		c = self.accountView.get_selection().get_selected()
 		del self.config['plugins'][c[0].get_value(c[1], 1)]
 		self.reloadAccountView()
 		self.entryUsername.set_text('')
 		self.entryPassword.set_text('')
+		self.setSensitiveInput(False)
+		self.currentIndex = ''
 		
-	def a(self, w):
-		pass
+	def add(self, w):
+		'''
+			adds new account
+		'''
+		self.setSensitiveInput(True)
+		pluginId = 'Unknown'
+		while pluginId in self.config['plugins']:
+			if pluginId[-1].isdigit():
+				tmp = pluginId.split('-')
+				pluginId = tmp[0] + '-' + str(int(tmp[1]) + 1)
+			else:
+				pluginId += '-1'
+		
+		print pluginId
+		self.currentIndex = pluginId
+						
+		self.config['plugins'][pluginId] = {
+			'username': '',
+			'password': '',			
+			'plugin': 'Unknown',
+			'enableprefix':	False
+		}
+		self.reloadAccountView()		
 		
 	def save(self):
 		pass
+		
+	def changed(self, w):	
+		'''
+			something is changed, but may there are soon more changes, so this function waits a little bit (10ms)
+		'''
+		self.timeouts += 1
+		gobject.timeout_add(10, self.change)
+		
+	def change(self):
+		'''
+			apply changes temporarly
+		'''
+		self.timeouts -= 1
+		if self.timeouts > 0:
+			return
+		
+		if not self.currentIndex == '':
+			self.config['plugins'][self.currentIndex]['username'] = \
+				self.entryUsername.get_text()
+			self.config['plugins'][self.currentIndex]['password'] = \
+				self.entryPassword.get_text()
+			p = self.cbPlugin.get_active()
+			if not p == -1 and p < len(self.plugins):
+				self.config['plugins'][self.currentIndex]['plugin'] = \
+					self.plugins[p]
+		
+			self.reloadAccountView()
 		
 	def main(self):
 		self.window.show()
