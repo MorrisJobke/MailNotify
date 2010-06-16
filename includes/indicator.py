@@ -46,11 +46,6 @@ class Indicator():
 		)
 		self.confFile = confFile
 		self.pluginDir = pluginDir
-#		self.desktopFile 	= os.path.join(
-#			os.path.dirname(sys.argv[0]),
-#			'data',
-#			'mailnotify.desktop'
-#		)
 		self.server	= indicate.indicate_server_ref_default()
 		self.server.set_type('message.mail')
 		self.server.set_desktop_file(self.desktopFile)
@@ -232,11 +227,7 @@ class Indicator():
 			except Exception, e:
 				log.error('An error occured ...')
 				log.error(e)
-			else:
-				#if 'error' in self.indicators:
-				#	self.indicators['error'].hide()
-				#	del self.indicators['error']
-					
+			else:					
 				if self.notifier[n].unread:
 					self.notifier[n].unread.indicate()
 					for u in self.notifier[n].unread.mails:
