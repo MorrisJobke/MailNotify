@@ -65,8 +65,6 @@ class Indicator():
 		self.loadConfig()
 		self.config['refreshtimeout'] = int(self.config['refreshtimeout'])
 		
-		self.config['refreshtimeout'] = 10
-		
 		if not init:
 			for i in self.notifier:
 				self.notifier[i].unread.clear()
