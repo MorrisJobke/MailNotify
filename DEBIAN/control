@@ -1,0 +1,10 @@
+Package: mailnotify
+Version: 0.1
+Section: admin
+Priority: optional
+Architecture: all
+Essential: no
+Depends:
+Installed-Size: 400
+Maintainer: Morris Jobke <morris.jobke@googlemail.com>
+Description: Dies ist die Beschreibung des Paketes
