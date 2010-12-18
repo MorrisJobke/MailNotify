@@ -217,7 +217,7 @@ class Indicator():
 							self.click
 						)
 						self.indicators['error'].unstress()
-				else:				
+				else:
 					log.error('An URLError occured ...')
 					log.error(e)
 					log.error('reason: ' + str(e.reason) )
@@ -225,7 +225,16 @@ class Indicator():
 			except Exception, e:
 				log.error('An error occured ...')
 				log.error(e)
-			else:					
+			else:
+				titles = [
+					'May you haven\'t internet connection',
+					'May you haven\'t network enabled'
+				]
+				if 'error' in self.indicators and \
+					self.indicators['error'].subject in titles:
+					self.indicators['error'].hide()
+					del self.indicators['error']
+
 				if self.notifier[n].unread:
 					self.notifier[n].unread.indicate()
 					for u in self.notifier[n].unread.mails:
